@@ -24,7 +24,7 @@ int iblock;
 
 char gpath[128];    // token strings
 char *name[32];
-int n, i, ino;
+int n, i;
 
 int get_block(int fd, int blk, char *buf)
 {
@@ -37,7 +37,7 @@ int search(INODE *ip, char *name)
   // Chapter 11.4.4  int i; 
   // Exercise 6
    int i;
-   char *cp, temp[256], sbuf[BLK];;
+   char *cp, temp[256], sbuf[BLK];
    for (i=0; i<12; i++){ // search DIR direct blocks only
       if (ip->i_block[i] == 0){
          return 0;
@@ -49,8 +49,8 @@ int search(INODE *ip, char *name)
       while (cp < sbuf + BLK){
          strncpy(temp, dp->name, dp->name_len);
          temp[dp->name_len] = 0;
-         printf("%8d%8d%8u %s\n",
-            dp->inode, dp->rec_len, dp->name_len, temp);
+         printf("%8d %8d %8u %s\n", dp->inode, dp->rec_len, dp->name_len, temp);
+         printf("name = %s, temp = %s\n", dp->name, temp);
          if (strcmp(name, temp)==0){
             printf("found %s : inumber = %d\n", name, dp->inode);
             return dp->inode;
@@ -81,6 +81,9 @@ char *disk = "vdisk";
 int main(int argc, char *argv[])   // a.out pathname
 {
   char buf[BLK];  // use more bufs if you need them
+  char supbuf[BLK];
+  char ibuf[BLK];
+  char ibbuf[BLK];
 
    //   1. open vdisk for READ: print fd value
    int fd = open(disk, O_RDONLY);
@@ -88,39 +91,52 @@ int main(int argc, char *argv[])   // a.out pathname
    //   2. read SUPER block #1 to verify EXT2 fs : print s_magic in HEX
    get_block(fd, 1, buf);
    sp = (SUPER *)buf;
-   ninodes = sp->s_inodes_count; // get inodes count
-   printf("inode = %d\n", ninodes);
+   int firstdata = sp->s_first_data_block;
+   int inodesize = sp->s_inode_size; // get inodes count
+
+   printf("s_magic = %x\n", ninodes);
+
    //   3. read GD block #2 to get inodes_block=bg_inode_table: print inodes_block 
-   get_block(fd, 2, buf);
+   get_block(fd, (firstdata + 1), buf);
    gp = (GD *)buf;
    inodes_block = gp->bg_inode_bitmap; // get imap block number
+
    printf("inodes_block = %d\n", inodes_block);
+
    //   4. read inodes_block into buf[] to get root INODE #2 : set ino=2 
    //           INODE *ip = (INODE *)buf + 1;
+
    get_block(fd, inodes_block, buf);
+   int ino;
    ip = (INODE *)buf + 1; 
    ino = 2;
 
    //   5. tokenize pathame=argv[1]);
    tokenize(argv[1]);
+   printf("tokenize -> ");
+   for(i = 0; name[i] != NULL; i++)
+        printf("/%s", name[i]);
+    printf("\n");
    //   6.   
+   //printf("name0 = %s, name1 = %s, name2 = %s", name[0], name[1], name[2]);
    int blk, offset;
+   char newbuf[BLK];
    for (i=0; i<n; i++){
-        printf("===========================================\n");
-        printf("search name[%d]=%s in ino=%d\n", i, name[i], ino);
-        ino = search(ip, name[i]);
+      printf("===========================================\n");
+      printf("search name[%d]=%s in ino=%d\n", i, name[i], ino);
+      ino = search(ip, name[i]);
 
-        if (ino==0){
-           printf("name %s does not exist\n", name[i]);
-           exit(1);
-        }
-        // MAILman's algrithm:
-         blk    = (ino-1) / 8 + inodes_block;
-         offset = (ino-1) % 8;
+      if (ino==0){
+         printf("name %s does not exist\n", name[i]);
+         exit(1);
+      }
+      // MAILman's algrithm:
+      blk    = (ino-1) / 8 + inodes_block;
+      offset = (ino-1) % 8;
 
-         get_block(fd, blk, buf);
+      get_block(fd, blk, newbuf);
 
-         ip = (INODE *)buf + offset;
+      ip = (INODE *)newbuf + offset;
    } 
 
 
