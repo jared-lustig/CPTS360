@@ -50,8 +50,19 @@ int ls_dir(MINODE *mip)
 
 int ls()
 {
-  printf("ls: list CWD only! YOU FINISH IT for ls pathname\n");
-  ls_dir(running->cwd);
+  // printf("ls: list CWD only! YOU FINISH IT for ls pathname\n");
+  // ls_dir(running->cwd);
+  int ino = getino(running->cwd);
+  MINODE* mip = iget(dev, ino);
+
+  int mode = mip->INODE.i_mode;
+
+  if(S_ISDIR(mode))
+    ls_dir(mip);
+  else 
+    ls_file(mip, running->cwd);
+
+  iput(mip);
 }
 
 char *pwd(MINODE *wd)
@@ -69,16 +80,16 @@ char *pwd(MINODE *wd)
 
 }
 
-// char rpwd(MINODE *wd)
-// {
-//   if(wd == root) return;
-//   int parent_ino = getino(&dev, dirname); // getting parent_ino
-//   MINODE* pip = iget(dev, parent_ino); // getting pip MINODE
+int rpwd(MINODE *wd)
+{
+  if(wd == root) return;
+  int parent_ino = getino(&dev, running->cwd); // getting parent_ino
+  MINODE* pip = iget(dev, parent_ino); // getting pip MINODE
 
-//   int my_ino = wd->INODE.i_block[0]; // getting my_ino
+  int my_ino = wd->INODE.i_block[0]; // getting my_ino
 
-//   pip->INODE.i_block[0]; // get my_name string by my_ino as Local
-//   rpwd(pip); // recursive call with parent minode
-//   printf("/%s\n", my_name);
-// }
+  pip->INODE.i_block[0]; // get my_name string by my_ino as Local
+  rpwd(pip); // recursive call with parent minode
+  //printf("/%s\n", my_name);
+}
 
