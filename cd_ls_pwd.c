@@ -37,9 +37,15 @@ int ls_dir(MINODE *mip)
   cp = buf;
   
   while (cp < buf + BLKSIZE){
+     int ino = getino(pathname);
+     mip = iget(dev, ino);
+
      strncpy(temp, dp->name, dp->name_len);
      temp[dp->name_len] = 0;
 	
+     ls_file(mip, temp);
+     iput(mip);
+
      printf("%s  ", temp);
 
      cp += dp->rec_len;
@@ -48,11 +54,14 @@ int ls_dir(MINODE *mip)
   printf("\n");
 }
 
-int ls()
+int ls(char *pathname)
 {
   // printf("ls: list CWD only! YOU FINISH IT for ls pathname\n");
   // ls_dir(running->cwd);
-  int ino = getino(running->cwd);
+  if(pathname[0] == '\0')
+    ls_dir(running->cwd);
+
+  int ino = getino(pathname);
   MINODE* mip = iget(dev, ino);
 
   int mode = mip->INODE.i_mode;
@@ -69,27 +78,34 @@ char *pwd(MINODE *wd)
 {
   //printf("pwd: READ HOW TO pwd in textbook!!!!\n");
   if (wd == root){
-    printf("/\n");
+    printf("pwd = /\n");
     return;
   }
   else{
     rpwd(wd);
   }
-  //pwd start:
-  pwd(running->cwd);
-
+  printf("-----\n");
+  printf("%s\n", running->cwd);
 }
 
 int rpwd(MINODE *wd)
 {
   if(wd == root) return;
-  int parent_ino = getino(&dev, running->cwd); // getting parent_ino
+  int ino;
+  char sbuf[BLKSIZE], thename[20];
+
+  get_block(dev, wd->INODE.i_block[0], sbuf);
+  
+  int parent_ino = findino(wd, &ino); // getting parent_ino
   MINODE* pip = iget(dev, parent_ino); // getting pip MINODE
 
-  int my_ino = wd->INODE.i_block[0]; // getting my_ino
+  findmyname(pip, ino, &thename);
 
-  pip->INODE.i_block[0]; // get my_name string by my_ino as Local
+  //printf("--------------------rpwd-------------------\n");
+  printf("/%s\n", thename);
+
   rpwd(pip); // recursive call with parent minode
-  //printf("/%s\n", my_name);
+  
+  iput(pip); // no longer need pip
 }
 
