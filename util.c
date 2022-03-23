@@ -219,12 +219,12 @@ int findmyname(MINODE *parent, u32 myino, char myname[ ])
          strncpy(temp, dp->name, dp->name_len);
          temp[dp->name_len] = 0;
 
-         printf("name = %s, temp = %s\n", dp->name, temp);
+         //printf("name = %s, temp = %s\n", dp->name, temp);
 
-         if(strcmp(dp->name, temp) != 0)
+         if(dp->inode == myino)
          {
             strcpy(myname, temp);
-            //return dp->inode;
+            return dp->inode;
          }
             
          cp += dp->rec_len;

@@ -57,7 +57,7 @@ int ls_dir(MINODE *mip)
 int ls(char *pathname)
 {
   // printf("ls: list CWD only! YOU FINISH IT for ls pathname\n");
-  // ls_dir(running->cwd);
+  // ls_dir(running->cwd);  
   if(pathname[0] == '\0')
     ls_dir(running->cwd);
 
@@ -83,15 +83,14 @@ char *pwd(MINODE *wd)
   }
   else{
     rpwd(wd);
+    printf("\n");
   }
-  printf("-----\n");
-  printf("%s\n", running->cwd);
 }
 
 int rpwd(MINODE *wd)
 {
   if(wd == root) return;
-  int ino;
+  int *ino;
   char sbuf[BLKSIZE], thename[20];
 
   get_block(dev, wd->INODE.i_block[0], sbuf);
@@ -99,12 +98,13 @@ int rpwd(MINODE *wd)
   int parent_ino = findino(wd, &ino); // getting parent_ino
   MINODE* pip = iget(dev, parent_ino); // getting pip MINODE
 
+  //printf("parent ino = %d, my_ino = %d\n", parent_ino, ino);    
+
   findmyname(pip, ino, &thename);
 
-  //printf("--------------------rpwd-------------------\n");
-  printf("/%s\n", thename);
-
   rpwd(pip); // recursive call with parent minode
+
+  printf("/%s", thename);
   
   iput(pip); // no longer need pip
 }
